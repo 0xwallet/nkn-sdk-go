@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	nkn "github.com/nknorg/nkn-sdk-go"
+	nkn "github.com/0xwallet/nkn-sdk-go"
 )
 
 func main() {

@@ -15,9 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/0xwallet/nkn-sdk-go/payloads"
 	"github.com/golang/protobuf/proto"
-	"github.com/gorilla/websocket"
-	"github.com/nknorg/nkn-sdk-go/payloads"
 	"github.com/nknorg/nkn/v2/api/common/errcode"
 	"github.com/nknorg/nkn/v2/config"
 	"github.com/nknorg/nkn/v2/crypto"
@@ -27,6 +26,8 @@ import (
 	"github.com/nknorg/nkn/v2/util/address"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/crypto/nacl/box"
+	"nhooyr.io/websocket"
+	"nhooyr.io/websocket/wsjson"
 )
 
 const (
@@ -186,7 +187,8 @@ func (c *Client) Close() error {
 
 	close(c.reconnectChan)
 
-	c.conn.Close()
+	// c.conn.Close()
+	c.conn.Close(websocket.StatusNormalClosure, "")
 
 	return nil
 }
@@ -360,13 +362,13 @@ func (c *Client) decryptPayload(msg *payloads.Message, srcAddr string) ([]byte, 
 	return decrypted, nil
 }
 
-func (c *Client) handleMessage(msgType int, data []byte) error {
+func (c *Client) handleMessage(msgType websocket.MessageType, data []byte) error {
 	if c.IsClosed() {
 		return nil
 	}
 
 	switch msgType {
-	case websocket.TextMessage:
+	case websocket.MessageText:
 		msg := make(map[string]*json.RawMessage)
 		if err := json.Unmarshal(data, &msg); err != nil {
 			return err
@@ -422,7 +424,7 @@ func (c *Client) handleMessage(msgType int, data []byte) error {
 			}
 			c.sigChainBlockHash = sigChainBlockHash
 		}
-	case websocket.BinaryMessage:
+	case websocket.MessageBinary:
 		clientMsg := &pb.ClientMessage{}
 		if err := proto.Unmarshal(data, clientMsg); err != nil {
 			return err
@@ -550,10 +552,19 @@ func (c *Client) connectToNode(node *Node) error {
 	}
 
 	wsAddr := (&url.URL{Scheme: "ws", Host: node.Addr}).String()
-	dialer := websocket.DefaultDialer
-	dialer.HandshakeTimeout = time.Duration(c.config.WsHandshakeTimeout) * time.Millisecond
 
-	conn, _, err := dialer.Dial(wsAddr, nil)
+	// dialer := websocket.DefaultDialer
+	// dialer.HandshakeTimeout = time.Duration(c.config.WsHandshakeTimeout) * time.Millisecond
+
+	// conn, _, err := dialer.Dial(wsAddr, nil)
+	// if err != nil {
+	// 	return err
+	// }
+
+	handshakeTimeout := time.Duration(c.config.WsHandshakeTimeout) * time.Millisecond
+	ctx, cancel := context.WithTimeout(context.Background(), handshakeTimeout)
+	defer cancel()
+	conn, _, err := websocket.Dial(ctx, wsAddr, nil)
 	if err != nil {
 		return err
 	}
@@ -572,15 +583,15 @@ func (c *Client) connectToNode(node *Node) error {
 	c.lock.Unlock()
 
 	if prevConn != nil {
-		prevConn.Close()
+		prevConn.Close(websocket.StatusTryAgainLater, "")
 	}
 
 	conn.SetReadLimit(config.MaxClientMessageSize)
-	conn.SetReadDeadline(time.Now().Add(pongTimeout))
-	conn.SetPongHandler(func(string) error {
-		conn.SetReadDeadline(time.Now().Add(pongTimeout))
-		return nil
-	})
+	// conn.SetReadDeadline(time.Now().Add(pongTimeout))
+	// conn.SetPongHandler(func(string) error {
+	// 	conn.SetReadDeadline(time.Now().Add(pongTimeout))
+	// 	return nil
+	// })
 
 	done := make(chan struct{})
 	go func() {
@@ -591,8 +602,10 @@ func (c *Client) connectToNode(node *Node) error {
 			select {
 			case <-ticker.C:
 				c.lock.Lock()
-				conn.SetWriteDeadline(time.Now().Add(pingInterval))
-				err = conn.WriteMessage(websocket.PingMessage, nil)
+				// conn.SetWriteDeadline(time.Now().Add(pingInterval))
+				ctx, cancel := context.WithTimeout(context.Background(), pingInterval)
+				defer cancel()
+				err = conn.Ping(ctx)
 				c.lock.Unlock()
 				if err != nil {
 					log.Println(err)
@@ -611,7 +624,8 @@ func (c *Client) connectToNode(node *Node) error {
 		req["Addr"] = c.Address()
 
 		c.lock.Lock()
-		err := conn.WriteJSON(req)
+		// err := conn.WriteJSON(req)
+		wsjson.Write(context.Background(), conn, req)
 		c.lock.Unlock()
 		if err != nil {
 			log.Println(err)
@@ -627,14 +641,17 @@ func (c *Client) connectToNode(node *Node) error {
 				return
 			}
 
-			msgType, data, err := conn.ReadMessage()
+			ctx, cancel := context.WithTimeout(context.Background(), pongTimeout)
+			defer cancel()
+			// msgType, data, err := conn.ReadMessage()
+			msgType, data, err := conn.Read(ctx)
 			if err != nil {
 				log.Println(err)
 				c.Reconnect()
 				return
 			}
 
-			conn.SetReadDeadline(time.Now().Add(pongTimeout))
+			// conn.SetReadDeadline(time.Now().Add(pongTimeout))
 
 			err = c.handleMessage(msgType, data)
 			if err != nil {
@@ -708,8 +725,13 @@ func (c *Client) handleReconnect() {
 
 func (c *Client) writeMessage(buf []byte) error {
 	c.lock.Lock()
-	c.conn.SetWriteDeadline(time.Now().Add(time.Duration(c.config.WsWriteTimeout) * time.Millisecond))
-	err := c.conn.WriteMessage(websocket.BinaryMessage, buf)
+	// c.conn.SetWriteDeadline(time.Now().Add(time.Duration(c.config.WsWriteTimeout) * time.Millisecond))
+	WriteTimeout := time.Duration(c.config.WsWriteTimeout) * time.Millisecond
+	ctx, cancel := context.WithTimeout(context.Background(), WriteTimeout)
+	defer cancel()
+	err := c.conn.Write(ctx, websocket.MessageBinary, buf)
+	// err := c.conn.WriteMessage(websocket.BinaryMessage, buf)
+
 	c.lock.Unlock()
 	if err != nil {
 		c.Reconnect()
@@ -1113,7 +1135,8 @@ func (c *Client) SetWriteDeadline(deadline time.Time) error {
 	if c.conn == nil {
 		return ErrNilWebsocketConn
 	}
-	return c.conn.SetWriteDeadline(deadline)
+	// TODO: global ctx
+	return nil // c.conn.SetWriteDeadline(deadline)
 }
 
 func (c *Client) getConfig() *ClientConfig {

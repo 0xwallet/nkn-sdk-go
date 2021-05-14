@@ -10,7 +10,7 @@ ANDROID_ARTIFACT=$(ANDROID_BUILDDIR)/nkn.aar
 IOS_BUILDDIR=$(BUILDDIR)/ios
 IOS_ARTIFACT=$(IOS_BUILDDIR)/Nkn.framework
 
-BUILD_PACKAGE=github.com/nknorg/nkn-sdk-go github.com/nknorg/ncp-go github.com/nknorg/nkn/v2/transaction
+BUILD_PACKAGE=github.com/0xwallet/nkn-sdk-go github.com/nknorg/ncp-go github.com/nknorg/nkn/v2/transaction
 ANDROID_BUILD_CMD="$(GOBIND) -a -ldflags $(ANDROID_LDFLAGS) -target=android -o $(ANDROID_ARTIFACT) $(BUILD_PACKAGE)"
 IOS_BUILD_CMD="$(GOBIND) -a -ldflags $(LDFLAGS) -target=ios -o $(IOS_ARTIFACT) $(BUILD_PACKAGE)"
 

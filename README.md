@@ -1,12 +1,12 @@
 # nkn-sdk-go
 
-[![GoDoc](https://godoc.org/github.com/nknorg/nkn-sdk-go?status.svg)](https://godoc.org/github.com/nknorg/nkn-sdk-go)
+[![GoDoc](https://godoc.org/github.com/0xwallet/nkn-sdk-go?status.svg)](https://godoc.org/github.com/0xwallet/nkn-sdk-go)
 [![GitHub
 license](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Go Report
-Card](https://goreportcard.com/badge/github.com/nknorg/nkn-sdk-go)](https://goreportcard.com/report/github.com/nknorg/nkn-sdk-go)
+Card](https://goreportcard.com/badge/github.com/0xwallet/nkn-sdk-go)](https://goreportcard.com/report/github.com/0xwallet/nkn-sdk-go)
 [![Build
-Status](https://travis-ci.org/nknorg/nkn-sdk-go.svg?branch=master)](https://travis-ci.org/nknorg/nkn-sdk-go)
+Status](https://travis-ci.org/0xwallet/nkn-sdk-go.svg?branch=master)](https://travis-ci.org/0xwallet/nkn-sdk-go)
 [![PRs
 Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
@@ -50,7 +50,7 @@ Advantages of using NKN client/multiclient for data transmission:
 ## Documentation
 
 Full documentation can be found at
-[GoDoc](https://godoc.org/github.com/nknorg/nkn-sdk-go).
+[GoDoc](https://godoc.org/github.com/0xwallet/nkn-sdk-go).
 
 ## Usage
 
@@ -357,13 +357,13 @@ on iOS/Android without any modification. You can use `gomobile bind` to compile
 it to Objective-C framework for iOS:
 
 ```shell
-gomobile bind -target=ios -ldflags "-s -w" github.com/nknorg/nkn-sdk-go github.com/nknorg/ncp-go github.com/nknorg/nkn/v2/transaction
+gomobile bind -target=ios -ldflags "-s -w" github.com/0xwallet/nkn-sdk-go github.com/nknorg/ncp-go github.com/nknorg/nkn/v2/transaction
 ```
 
 and Java AAR for Android:
 
 ```shell
-gomobile bind -target=android -ldflags "-s -w" github.com/nknorg/nkn-sdk-go github.com/nknorg/ncp-go github.com/nknorg/nkn/v2/transaction
+gomobile bind -target=android -ldflags "-s -w" github.com/0xwallet/nkn-sdk-go github.com/nknorg/ncp-go github.com/nknorg/nkn/v2/transaction
 ```
 
 It's recommended to use the latest version of gomobile that supports go modules.
