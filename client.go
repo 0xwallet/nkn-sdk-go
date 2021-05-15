@@ -40,10 +40,10 @@ const (
 	maxClientMessageSize = 4000000
 
 	// WebSocket ping interval.
-	pingInterval = 8 * time.Second
+	pingInterval = 30 * time.Second
 
 	// WebSocket ping response timeout. Should be greater than pingInterval.
-	pongTimeout = 10 * time.Second
+	pongTimeout = 60 * time.Second
 
 	// Should match the setClient action string on node side.
 	setClientAction = "setClient"
@@ -726,11 +726,11 @@ func (c *Client) handleReconnect() {
 func (c *Client) writeMessage(buf []byte) error {
 	c.lock.Lock()
 	// c.conn.SetWriteDeadline(time.Now().Add(time.Duration(c.config.WsWriteTimeout) * time.Millisecond))
+	// err := c.conn.WriteMessage(websocket.BinaryMessage, buf)
 	WriteTimeout := time.Duration(c.config.WsWriteTimeout) * time.Millisecond
 	ctx, cancel := context.WithTimeout(context.Background(), WriteTimeout)
 	defer cancel()
 	err := c.conn.Write(ctx, websocket.MessageBinary, buf)
-	// err := c.conn.WriteMessage(websocket.BinaryMessage, buf)
 
 	c.lock.Unlock()
 	if err != nil {
